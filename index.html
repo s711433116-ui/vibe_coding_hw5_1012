@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <link href="/favicon.ico" rel="icon shortcut">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Research Meeting Dashboard｜研究 Meeting 準備儀表板</title>
+  <meta name="description" content="研究生每週與教授 Meeting 前的準備儀表板：整理研究事項、計算 Meeting Ready 分數、找出優先處理項目並記錄 Meeting 建議。" />
+  <meta name="author" content="Research Meeting Dashboard" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================================
+       1. Design tokens
+       ============================================================ */
+    :root {
+      /* neutrals — cool paper */
+      --bg: hsl(228, 28%, 97%);
+      --surface: hsl(0, 0%, 100%);
+      --surface-sunken: hsl(228, 24%, 95%);
+      --border: hsl(228, 18%, 89%);
+      --border-strong: hsl(228, 14%, 78%);
+      --text: hsl(228, 30%, 15%);
+      --text-2: hsl(228, 12%, 43%);
+
+      /* primary — ink indigo */
+      --primary: hsl(245, 58%, 52%);
+      --primary-hover: hsl(245, 58%, 44%);
+      --primary-active: hsl(245, 55%, 30%);
+      --primary-soft: hsl(245, 60%, 96%);
+      --primary-line: hsl(245, 45%, 86%);
+      --on-primary: hsl(0, 0%, 100%);
+
+      /* status: 已完成 */
+      --done-fg: hsl(158, 55%, 28%);
+      --done-bg: hsl(158, 45%, 94%);
+      --done-bd: hsl(158, 30%, 84%);
+      /* status: 待確認 */
+      --wait-fg: hsl(38, 80%, 28%);
+      --wait-bg: hsl(38, 90%, 94%);
+      --wait-bd: hsl(38, 60%, 82%);
+      /* status: 未完成 */
+      --todo-fg: hsl(232, 14%, 36%);
+      --todo-bg: hsl(232, 16%, 94%);
+      --todo-bd: hsl(232, 14%, 84%);
+      /* priority */
+      --alert-fg: hsl(8, 74%, 40%);
+      --alert-bg: hsl(8, 86%, 96%);
+      --alert-bd: hsl(8, 70%, 88%);
+
+      --focus-ring: hsl(245, 70%, 58%);
+      --focus-halo: hsla(245, 70%, 58%, 0.28);
+
+      /* radius */
+      --r-xs: 4px;
+      --r-sm: 6px;
+      --r-md: 10px;
+      --r-lg: 14px;
+      --r-xl: 20px;
+      --r-pill: 999px;
+
+      /* elevation */
+      --shadow-xs: 0 1px 2px hsla(228, 30%, 20%, 0.06);
+      --shadow-sm: 0 1px 3px hsla(228, 30%, 20%, 0.08), 0 1px 2px hsla(228, 30%, 20%, 0.04);
+      --shadow-md: 0 4px 12px hsla(228, 30%, 20%, 0.09), 0 2px 4px hsla(228, 30%, 20%, 0.05);
+      --shadow-lg: 0 12px 28px hsla(228, 35%, 18%, 0.12);
+
+      /* motion */
+      --fast: 120ms;
+      --base: 180ms;
+      --slow: 420ms;
+      --ease: cubic-bezier(0.2, 0, 0, 1);
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+      /* typography */
+      --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+      --font-display: "Source Serif 4", Georgia, "Times New Roman", serif;
+
+      /* spacing */
+      --sp-xs: 4px;
+      --sp-sm: 8px;
+      --sp-md: 16px;
+      --sp-lg: 24px;
+      --sp-xl: 40px;
+
+      --topbar-h: 64px;
+    }
+
+    /* ============================================================
+       2. Base
+       ============================================================ */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    p {
+      margin: 0;
+    }
+
+    button {
+      font-family: inherit;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1240px;
+      margin-inline: auto;
+      padding-inline: clamp(16px, 4vw, 32px);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* ============================================================
+       3. Top bar
+       ============================================================ */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: hsla(228, 28%, 97%, 0.88);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .topbar__inner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--sp-md);
+      min-height: var(--topbar-h);
+      padding-block: var(--sp-sm);
+    }
+
+    .topbar__brand {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      margin-right: auto;
+      min-width: 0;
+    }
+
+    .topbar__mark {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      flex: none;
+      border-radius: var(--r-md);
+      background: linear-gradient(150deg, var(--primary), var(--primary-active));
+      color: var(--on-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .topbar__title {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .topbar__sub {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+
+    .topbar__actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--sp-sm);
+    }
+
+    .save-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 10px;
+      border-radius: var(--r-pill);
+      background: var(--primary-soft);
+      border: 1px solid var(--primary-line);
+      color: var(--primary-active);
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .save-chip__dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .save-chip--saving {
+      background: var(--wait-bg);
+      border-color: var(--wait-bd);
+      color: var(--wait-fg);
+    }
+
+    /* ============================================================
+       4. Buttons
+       ============================================================ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-sm);
+      min-height: 40px;
+      padding: 0 var(--sp-md);
+      border-radius: var(--r-md);
+      border: 1px solid transparent;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color var(--fast) var(--ease), border-color var(--fast) var(--ease),
+        color var(--fast) var(--ease), box-shadow var(--fast) var(--ease), transform var(--fast) var(--ease);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .btn--primary {
+      background: var(--primary);
+      color: var(--on-primary);
+      box-shadow: var(--shadow-xs);
+    }
+
+    .btn--primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+
+    .btn--primary:active:not(:disabled) {
+      background: var(--primary-active);
+    }
+
+    .btn--secondary {
+      background: var(--surface);
+      border-color: var(--primary-line);
+      color: var(--primary-active);
+    }
+
+    .btn--secondary:hover:not(:disabled) {
+      background: var(--primary-soft);
+      border-color: var(--primary);
+    }
+
+    .btn--ghost {
+      background: transparent;
+      color: var(--text-2);
+      border-color: var(--border-strong);
+    }
+
+    .btn--ghost:hover:not(:disabled) {
+      background: var(--surface-sunken);
+      color: var(--text);
+    }
+
+    .btn--alert {
+      background: transparent;
+      border-color: var(--alert-bd);
+      color: var(--alert-fg);
+    }
+
+    .btn--alert:hover:not(:disabled) {
+      background: var(--alert-bg);
+    }
+
+    .btn--sm {
+      min-height: 34px;
+      padding: 0 12px;
+      font-size: 13px;
+    }
+
+    .btn--block {
+      width: 100%;
+    }
+
+    .icon-btn {
+      display: inline-grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      flex: none;
+      border-radius: var(--r-sm);
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-2);
+      cursor: pointer;
+      transition: background-color var(--fast) var(--ease), color var(--fast) var(--ease),
+        border-color var(--fast) var(--ease);
+    }
+
+    .icon-btn:hover {
+      background: var(--surface-sunken);
+      border-color: var(--border);
+      color: var(--text);
+    }
+
+    .icon-btn--alert:hover {
+      background: var(--alert-bg);
+      border-color: var(--alert-bd);
+      color: var(--alert-fg);
+    }
+
+    /* ============================================================
+       5. Layout
+       ============================================================ */
+    .dashboard {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--sp-md);
+      padding-block: var(--sp-lg) var(--sp-xl);
+    }
+
+    .dashboard__main,
+    .dashboard__side-inner {
+      display: grid;
+      gap: var(--sp-md);
+      align-content: start;
+    }
+
+    .dashboard__side {
+      order: 1;
+    }
+
+    .dashboard__main {
+      order: 2;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-sm);
+      padding: var(--sp-lg);
+    }
+
+    .card--basics {
+      order: 0;
+      border-color: var(--primary-line);
+      box-shadow: var(--shadow-md);
+    }
+
+    @media (min-width: 1024px) {
+      .dashboard {
+        grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+        grid-template-areas:
+          "basics basics"
+          "main side";
+        gap: var(--sp-lg);
+        align-items: start;
+      }
+
+      .card--basics {
+        grid-area: basics;
+      }
+
+      .dashboard__main {
+        grid-area: main;
+        order: initial;
+      }
+
+      .dashboard__side {
+        grid-area: side;
+        order: initial;
+      }
+
+      .dashboard__side-inner {
+        position: sticky;
+        top: calc(var(--topbar-h) + var(--sp-md));
+      }
+
+      .card {
+        padding: var(--sp-lg) 28px;
+      }
+    }
+
+    /* ============================================================
+       6. Section header
+       ============================================================ */
+    .section-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--sp-sm) var(--sp-md);
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: var(--sp-md);
+    }
+
+    .section-header__title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .section-header__icon {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      flex: none;
+      border-radius: var(--r-sm);
+      background: var(--primary-soft);
+      color: var(--primary-active);
+    }
+
+    .section-header__meta {
+      font-size: 13px;
+      color: var(--text-2);
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+
+    .hint {
+      font-size: 13px;
+      line-height: 20px;
+      color: var(--text-2);
+    }
+
+    /* ============================================================
+       7. Form controls
+       ============================================================ */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: var(--sp-md);
+    }
+
+    .form-grid--full {
+      grid-column: 1 / -1;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .field__label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+
+    .field__helper {
+      font-size: 12px;
+      color: var(--text-2);
+    }
+
+    .field__error {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--alert-fg);
+    }
+
+    .input,
+    .select,
+    .textarea {
+      width: 100%;
+      min-height: 42px;
+      padding: 10px 12px;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--r-sm);
+      font-family: inherit;
+      font-size: 15px;
+      line-height: 22px;
+      transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+    }
+
+    .input::placeholder,
+    .textarea::placeholder {
+      color: var(--text-2);
+    }
+
+    .input:hover,
+    .select:hover,
+    .textarea:hover {
+      border-color: hsl(228, 14%, 66%);
+    }
+
+    .input:focus,
+    .select:focus,
+    .textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--focus-halo);
+    }
+
+    .input[aria-invalid="true"] {
+      border-color: var(--alert-fg);
+    }
+
+    .textarea {
+      min-height: 104px;
+      resize: vertical;
+    }
+
+    .select {
+      appearance: none;
+      padding-right: 34px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2360667B' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 16px 16px;
+    }
+
+    .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--sp-sm);
+      margin-top: var(--sp-md);
+    }
+
+    /* ============================================================
+       8. Badges
+       ============================================================ */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 24px;
+      padding: 0 10px;
+      border-radius: var(--r-pill);
+      border: 1px solid transparent;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    .badge--dot::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .badge--done {
+      background: var(--done-bg);
+      color: var(--done-fg);
+      border-color: var(--done-bd);
+    }
+
+    .badge--wait {
+      background: var(--wait-bg);
+      color: var(--wait-fg);
+      border-color: var(--wait-bd);
+    }
+
+    .badge--todo {
+      background: var(--todo-bg);
+      color: var(--todo-fg);
+      border-color: var(--todo-bd);
+    }
+
+    .badge--alert {
+      background: var(--alert-bg);
+      color: var(--alert-fg);
+      border-color: var(--alert-bd);
+    }
+
+    .badge--neutral {
+      background: var(--surface-sunken);
+      color: var(--todo-fg);
+      border-color: var(--border);
+    }
+
+    .badge--accent {
+      background: var(--primary-soft);
+      color: var(--primary-active);
+      border-color: var(--primary-line);
+    }
+
+    /* ============================================================
+       9. Score card
+       ============================================================ */
+    .score {
+      display: grid;
+      gap: var(--sp-md);
+    }
+
+    .score__headline {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: var(--sp-md);
+      flex-wrap: wrap;
+    }
+
+    .score__value {
+      font-family: var(--font-display);
+      font-size: 56px;
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+    }
+
+    .score__unit {
+      font-size: 22px;
+      margin-left: 4px;
+      color: var(--text-2);
+    }
+
+    .score__caption {
+      font-size: 13px;
+      color: var(--text-2);
+      text-align: right;
+    }
+
+    .progress {
+      position: relative;
+      height: 10px;
+      background: var(--surface-sunken);
+      border-radius: var(--r-pill);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .progress__fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: var(--wait-fg);
+      transition: width var(--slow) var(--ease-out), background-color var(--base) var(--ease);
+    }
+
+    .progress--ready .progress__fill {
+      background: var(--done-fg);
+    }
+
+    .progress--wait .progress__fill {
+      background: var(--wait-fg);
+    }
+
+    .progress--todo .progress__fill {
+      background: var(--alert-fg);
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--sp-sm);
+    }
+
+    .stat {
+      padding: 10px;
+      border-radius: var(--r-md);
+      background: var(--surface-sunken);
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .stat__value {
+      font-size: 20px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat__label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: var(--text-2);
+    }
+
+    .stat--done {
+      background: var(--done-bg);
+      border-color: var(--done-bd);
+      color: var(--done-fg);
+    }
+
+    .stat--wait {
+      background: var(--wait-bg);
+      border-color: var(--wait-bd);
+      color: var(--wait-fg);
+    }
+
+    .stat--todo {
+      background: var(--todo-bg);
+      border-color: var(--todo-bd);
+      color: var(--todo-fg);
+    }
+
+    .stat--done .stat__label,
+    .stat--wait .stat__label,
+    .stat--todo .stat__label {
+      color: inherit;
+      opacity: 0.85;
+    }
+
+    .meter-scale {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    /* ============================================================
+       10. Lists
+       ============================================================ */
+    .list {
+      display: grid;
+      gap: var(--sp-sm);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: var(--sp-sm) var(--sp-md);
+      padding: 12px var(--sp-md);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border-strong);
+      border-radius: var(--r-md);
+      transition: background-color var(--fast) var(--ease), border-color var(--fast) var(--ease);
+    }
+
+    .row:hover {
+      background: var(--surface-sunken);
+    }
+
+    .row--done {
+      border-left-color: var(--done-fg);
+    }
+
+    .row--wait {
+      border-left-color: var(--wait-fg);
+    }
+
+    .row--todo {
+      border-left-color: var(--todo-fg);
+    }
+
+    .row--alert {
+      border-left-color: var(--alert-fg);
+      background: var(--alert-bg);
+    }
+
+    .row--alert:hover {
+      background: hsl(8, 86%, 94%);
+    }
+
+    .row__body {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .row__title {
+      font-size: 15px;
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+
+    .row--done .row__title {
+      color: var(--text-2);
+      text-decoration: line-through;
+      text-decoration-color: var(--done-bd);
+    }
+
+    .row__badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .row__note {
+      font-size: 13px;
+      line-height: 20px;
+      color: var(--text-2);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .row__actions {
+      display: flex;
+      gap: 2px;
+      align-self: start;
+    }
+
+    .empty-state {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      padding: var(--sp-xl) var(--sp-lg);
+      text-align: center;
+      background: var(--surface-sunken);
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--r-md);
+    }
+
+    .empty-state__icon {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: var(--r-pill);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--primary-active);
+    }
+
+    .empty-state__title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .empty-state__body {
+      max-width: 42ch;
+      font-size: 13px;
+      line-height: 20px;
+      color: var(--text-2);
+    }
+
+    /* ============================================================
+       11. Filters
+       ============================================================ */
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: var(--sp-sm);
+      padding: var(--sp-md);
+      margin-bottom: var(--sp-md);
+      background: var(--surface-sunken);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+    }
+
+    .filters__foot {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-sm);
+      grid-column: 1 / -1;
+      font-size: 13px;
+      color: var(--text-2);
+    }
+
+    /* ============================================================
+       12. Question card
+       ============================================================ */
+    .question {
+      display: grid;
+      gap: var(--sp-md);
+    }
+
+    .quote {
+      position: relative;
+      padding: var(--sp-md) var(--sp-md) var(--sp-md) 34px;
+      background: var(--primary-soft);
+      border: 1px solid var(--primary-line);
+      border-radius: var(--r-md);
+      font-size: 15px;
+      line-height: 24px;
+      color: var(--primary-active);
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+
+    .quote__mark {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      color: var(--primary);
+      opacity: 0.75;
+    }
+
+    .quote--empty {
+      background: var(--surface-sunken);
+      border-color: var(--border);
+      border-style: dashed;
+      color: var(--text-2);
+      font-weight: 400;
+    }
+
+    .question__actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--sp-sm);
+    }
+
+    .question__meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--sp-sm);
+      font-size: 13px;
+      color: var(--text-2);
+    }
+
+    /* ============================================================
+       13. Toast
+       ============================================================ */
+    .toast-stack {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      z-index: 200;
+      display: grid;
+      gap: var(--sp-sm);
+      width: min(420px, calc(100vw - 32px));
+      pointer-events: none;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px var(--sp-md);
+      border-radius: var(--r-md);
+      background: var(--text);
+      color: var(--surface);
+      box-shadow: var(--shadow-lg);
+      font-size: 13px;
+      font-weight: 500;
+      animation: toast-in var(--base) var(--ease-out);
+    }
+
+    .toast--alert {
+      background: var(--alert-fg);
+    }
+
+    @keyframes toast-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .footer {
+      padding: 0 0 var(--sp-xl);
+      font-size: 12px;
+      color: var(--text-2);
+      text-align: center;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="container topbar__inner">
+      <div class="topbar__brand">
+        <span class="topbar__mark" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5V6a2 2 0 0 1 2-2h9l4 4v11.5" />
+            <path d="M8 8h5M8 12h7M8 16h4" />
+          </svg>
+        </span>
+        <div>
+          <h1 class="topbar__title">研究 Meeting 準備儀表板</h1>
+          <p class="topbar__sub">Research Meeting Dashboard</p>
+        </div>
+      </div>
+      <div class="topbar__actions">
+        <span class="save-chip" id="saveChip" role="status" aria-live="polite">
+          <span class="save-chip__dot" aria-hidden="true"></span>
+          <span id="saveText">已自動儲存</span>
+        </span>
+        <button class="btn btn--secondary btn--sm" id="exportBtn" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12m0 0 4-4m-4 4-4-4" />
+            <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+          </svg>
+          匯出 Meeting 摘要
+        </button>
+        <button class="btn btn--alert btn--sm" id="newMeetingBtn" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          建立新的 Meeting
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container dashboard">
+    <!-- ===== Meeting 基本資料 ===== -->
+    <section class="card card--basics" aria-labelledby="basicsTitle">
+      <div class="section-header">
+        <h2 class="section-header__title" id="basicsTitle">
+          <span class="section-header__icon" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="5" width="18" height="16" rx="2" />
+              <path d="M8 3v4M16 3v4M3 11h18" />
+            </svg>
+          </span>
+          Meeting 基本資料
+        </h2>
+        <span class="section-header__meta" id="basicsMeta">資料變更後會自動保存</span>
+      </div>
+      <div class="form-grid">
+        <label class="field">
+          <span class="field__label">Meeting 日期</span>
+          <input class="input" type="date" id="metaDate" />
+        </label>
+        <label class="field">
+          <span class="field__label">預計報告時間</span>
+          <input class="input" type="text" id="metaDuration" placeholder="例如：15 分鐘" />
+        </label>
+        <label class="field form-grid--full">
+          <span class="field__label">研究主題</span>
+          <input class="input" type="text" id="metaTopic" placeholder="例如：以 Transformer 進行 EEG 訊號分類" />
+        </label>
+        <label class="field form-grid--full">
+          <span class="field__label">上次教授交代事項</span>
+          <textarea class="textarea" id="metaLastNote" style="min-height: 82px"
+            placeholder="列出上次 Meeting 結束前教授要求你完成或確認的事項"></textarea>
+        </label>
+      </div>
+    </section>
+
+    <!-- ===== 左欄：研究事項 + Meeting 筆記 ===== -->
+    <div class="dashboard__main">
+      <section class="card" aria-labelledby="tasksTitle">
+        <div class="section-header">
+          <h2 class="section-header__title" id="tasksTitle">
+            <span class="section-header__icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+              </svg>
+            </span>
+            研究事項
+          </h2>
+          <span class="section-header__meta" id="tasksMeta">共 0 筆</span>
+        </div>
+
+        <form class="form-grid" id="taskForm" novalidate>
+          <label class="field form-grid--full">
+            <span class="field__label">事項名稱</span>
+            <input class="input" type="text" id="taskName" placeholder="例如：完成 EEG 資料前處理 pipeline" />
+            <span class="field__error" id="taskNameError" hidden>請輸入事項名稱</span>
+          </label>
+          <label class="field">
+            <span class="field__label">類別</span>
+            <select class="select" id="taskCategory"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">重要程度</span>
+            <select class="select" id="taskImportance"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">狀態</span>
+            <select class="select" id="taskStatus"></select>
+          </label>
+          <label class="field form-grid--full">
+            <span class="field__label">備註</span>
+            <textarea class="textarea" id="taskNote" style="min-height: 70px"
+              placeholder="補充說明、遇到的問題或需要教授的協助"></textarea>
+          </label>
+        </form>
+        <div class="form-actions">
+          <button class="btn btn--primary" type="submit" form="taskForm" id="taskSubmitBtn">新增研究事項</button>
+          <button class="btn btn--ghost" type="button" id="taskCancelBtn" hidden>取消編輯</button>
+        </div>
+
+        <div class="filters" style="margin-top: 24px" aria-label="研究事項篩選">
+          <label class="field">
+            <span class="field__label">狀態</span>
+            <select class="select" id="filterStatus"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">重要程度</span>
+            <select class="select" id="filterImportance"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">類別</span>
+            <select class="select" id="filterCategory"></select>
+          </label>
+          <div class="filters__foot">
+            <span id="filterCount">顯示 0 / 0 筆</span>
+            <button class="btn btn--ghost btn--sm" type="button" id="clearFiltersBtn">清除篩選</button>
+          </div>
+        </div>
+
+        <ul class="list" id="taskList"></ul>
+      </section>
+
+      <section class="card" aria-labelledby="notesTitle">
+        <div class="section-header">
+          <h2 class="section-header__title" id="notesTitle">
+            <span class="section-header__icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+                <path d="M8 12h8M8 16h5" />
+              </svg>
+            </span>
+            Meeting 筆記
+          </h2>
+        </div>
+        <div class="form-grid">
+          <label class="field form-grid--full">
+            <span class="field__label">Meeting 前想問教授</span>
+            <textarea class="textarea" id="notesQuestions"
+              placeholder="一列一個問題，例如：這個 baseline 是否需要重跑？"></textarea>
+          </label>
+          <label class="field form-grid--full">
+            <span class="field__label">Meeting 後教授建議</span>
+            <textarea class="textarea" id="notesAdvice" placeholder="一列一項建議，方便轉成下次的待辦事項"></textarea>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn--secondary" type="button" id="adviceToTasksBtn">轉成下次待辦</button>
+          <span class="hint" id="adviceHint">每列視為一筆待辦事項（類別：待討論、重要程度：高）</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== 右欄：分數、優先處理、模擬追問 ===== -->
+    <aside class="dashboard__side">
+      <div class="dashboard__side-inner">
+        <section class="card" aria-labelledby="scoreTitle">
+          <div class="section-header">
+            <h2 class="section-header__title" id="scoreTitle">
+              <span class="section-header__icon" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 20h18" />
+                  <path d="M6 20v-6M11 20v-11M16 20v-4M21 20v-9" />
+                </svg>
+              </span>
+              Meeting Ready
+            </h2>
+            <span class="eyebrow">重要度加權</span>
+          </div>
+          <div class="score">
+            <div class="score__headline">
+              <div>
+                <span class="score__value" id="scorePercent">0</span><span class="score__unit">%</span>
+              </div>
+              <div class="score__caption">
+                <span class="badge badge--dot badge--todo" id="scoreBand">尚未新增事項</span>
+                <div id="scoreCaption">加入研究事項後即可計算準備程度</div>
+              </div>
+            </div>
+            <div class="progress progress--todo" id="scoreProgress" role="progressbar" aria-valuemin="0"
+              aria-valuemax="100" aria-valuenow="0" aria-label="Meeting 準備度">
+              <div class="progress__fill" id="scoreFill"></div>
+            </div>
+            <div class="meter-scale"><span>0%</span><span>50%</span><span>100%</span></div>
+            <p class="hint" id="scoreFormula">計算公式：實際取得分數 ÷ 所有事項最高可能分數 × 100%</p>
+            <div class="stat-grid">
+              <div class="stat">
+                <div class="stat__value" id="statTotal">0</div>
+                <div class="stat__label">全部</div>
+              </div>
+              <div class="stat stat--done">
+                <div class="stat__value" id="statDone">0</div>
+                <div class="stat__label">已完成</div>
+              </div>
+              <div class="stat stat--wait">
+                <div class="stat__value" id="statWait">0</div>
+                <div class="stat__label">待確認</div>
+              </div>
+              <div class="stat stat--todo">
+                <div class="stat__value" id="statTodo">0</div>
+                <div class="stat__label">未完成</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="priorityTitle">
+          <div class="section-header">
+            <h2 class="section-header__title" id="priorityTitle">
+              <span class="section-header__icon" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 9v4M12 17h.01" />
+                  <path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+                </svg>
+              </span>
+              Meeting 前建議優先處理
+            </h2>
+            <span class="section-header__meta" id="priorityMeta">0 項</span>
+          </div>
+          <ul class="list" id="priorityList"></ul>
+        </section>
+
+        <section class="card" aria-labelledby="questionTitle">
+          <div class="section-header">
+            <h2 class="section-header__title" id="questionTitle">
+              <span class="section-header__icon" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9.1 9a3 3 0 1 1 4.6 2.5c-.9.6-1.7 1.1-1.7 2.5" />
+                  <path d="M12 17h.01" />
+                  <circle cx="12" cy="12" r="9" />
+                </svg>
+              </span>
+              教授可能追問
+            </h2>
+          </div>
+          <div class="question">
+            <div class="quote quote--empty" id="questionBox">
+              <span class="quote__mark" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M7 7h4v6a4 4 0 0 1-4 4" />
+                  <path d="M15 7h4v6a4 4 0 0 1-4 4" />
+                </svg>
+              </span>
+              <span id="questionText">尚未抽題，按下按鈕隨機抽出一題模擬教授可能的提問。</span>
+            </div>
+            <div class="question__meta" id="questionMeta" hidden>
+              <span class="badge badge--neutral">已抽題</span>
+              <span id="questionHelper"></span>
+            </div>
+            <button class="btn btn--primary btn--block" type="button" id="drawQuestionBtn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <path d="M8.5 8.5h.01M12 12h.01M15.5 15.5h.01" />
+              </svg>
+              模擬教授追問
+            </button>
+            <div class="question__actions" id="questionActions" hidden>
+              <button class="btn btn--secondary" type="button" id="questionReadyBtn">我已準備好</button>
+              <button class="btn btn--ghost" type="button" id="questionTodoBtn">加入待辦</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </main>
+
+  <p class="footer">所有資料僅儲存在這台裝置的瀏覽器（localStorage），重新整理後仍會保留。</p>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      /* ==========================================================
+         Constants
+         ========================================================== */
+      var STORAGE_KEY = "research-meeting-dashboard:v1";
+
+      var CATEGORIES = ["資料處理", "方法", "程式", "圖表", "結果", "文獻", "待討論", "其他"];
+      var IMPORTANCE_LEVELS = ["高", "中", "低"];
+      var STATUSES = ["已完成", "待確認", "未完成"];
+
+      var WEIGHT = { 高: 3, 中: 2, 低: 1 };
+      var CREDIT = { 已完成: 1, 待確認: 0.5, 未完成: 0 };
+
+      var STATUS_CLASS = { 已完成: "done", 待確認: "wait", 未完成: "todo" };
+
+      var QUESTIONS = [
+        "為什麼選擇這個方法？",
+        "有沒有其他方法可以比較？",
+        "結果是否符合預期？",
+        "異常值有沒有檢查原始資料？",
+        "有沒有其他資料可以驗證？",
+        "文獻中有沒有類似結果？",
+        "目前方法有哪些限制？",
+        "下一步要怎麼驗證？",
+        "這個結果代表什麼？"
+      ];
+
+      var ICONS = {
+        edit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+        trash: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/><path d="M10 11v5M14 11v5"/></svg>',
+        check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+        empty: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+        flag: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4h12l-1 4h5l-2 5 2 5h-8l-1-4H4"/></svg>'
+      };
+
+      /* ==========================================================
+         State
+         ========================================================== */
+      function emptyState() {
+        return {
+          meta: { date: "", topic: "", duration: "", lastNote: "" },
+          tasks: [],
+          notes: { questions: "", advice: "" },
+          question: { text: "", prepared: false },
+          filters: { status: "全部", importance: "全部", category: "全部" }
+        };
+      }
+
+      function loadState() {
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return emptyState();
+          var parsed = JSON.parse(raw);
+          var base = emptyState();
+          var meta = Object.assign(base.meta, parsed && parsed.meta);
+          var notes = Object.assign(base.notes, parsed && parsed.notes);
+          var question = Object.assign(base.question, parsed && parsed.question);
+          var filters = Object.assign(base.filters, parsed && parsed.filters);
+          var tasks = Array.isArray(parsed && parsed.tasks) ? parsed.tasks.map(normalizeTask) : [];
+          return { meta: meta, notes: notes, question: question, filters: filters, tasks: tasks };
+        } catch (err) {
+          return emptyState();
+        }
+      }
+
+      function normalizeTask(task) {
+        task = task || {};
+        return {
+          id: task.id || uid(),
+          name: typeof task.name === "string" ? task.name : "",
+          category: CATEGORIES.indexOf(task.category) >= 0 ? task.category : "其他",
+          importance: IMPORTANCE_LEVELS.indexOf(task.importance) >= 0 ? task.importance : "中",
+          status: STATUSES.indexOf(task.status) >= 0 ? task.status : "未完成",
+          note: typeof task.note === "string" ? task.note : ""
+        };
+      }
+
+      function uid() {
+        return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      }
+
+      var state = loadState();
+      var editingId = null;
+      var saveTimer = null;
+
+      /* ==========================================================
+         DOM helpers
+         ========================================================== */
+      function $(id) {
+        return document.getElementById(id);
+      }
+
+      function esc(value) {
+        return String(value == null ? "" : value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function fillSelect(select, options, selected, extraOptions) {
+        var all = (extraOptions || ["全部"]).concat(options);
+        select.innerHTML = all.map(function (option) {
+          return '<option value="' + esc(option) + '"' + (option === selected ? " selected" : "") + ">" + esc(option) + "</option>";
+        }).join("");
+      }
+
+      /* ==========================================================
+         Persistence
+         ========================================================== */
+      function setSaveChip(saving) {
+        var chip = $("saveChip");
+        var text = $("saveText");
+        if (!chip || !text) return;
+        if (saving) {
+          chip.classList.add("save-chip--saving");
+          text.textContent = "儲存中…";
+        } else {
+          chip.classList.remove("save-chip--saving");
+          text.textContent = "已自動儲存 " + new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+        }
+      }
+
+      function flushSave() {
+        if (saveTimer) {
+          clearTimeout(saveTimer);
+          saveTimer = null;
+        }
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          setSaveChip(false);
+        } catch (err) {
+          setSaveChip(false);
+        }
+      }
+
+      function scheduleSave() {
+        setSaveChip(true);
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(flushSave, 350);
+      }
+
+      /* ==========================================================
+         Toast
+         ========================================================== */
+      function toast(message, variant) {
+        var stack = $("toastStack");
+        if (!stack) return;
+        var el = document.createElement("div");
+        el.className = "toast" + (variant === "alert" ? " toast--alert" : "");
+        el.innerHTML = '<span aria-hidden="true">' + (variant === "alert" ? ICONS.flag : ICONS.check) + "</span><span>" + esc(message) + "</span>";
+        stack.appendChild(el);
+        setTimeout(function () {
+          el.style.transition = "opacity 200ms ease";
+          el.style.opacity = "0";
+          setTimeout(function () {
+            if (el.parentNode) el.parentNode.removeChild(el);
+          }, 220);
+        }, 2400);
+      }
+
+      /* ==========================================================
+         Score
+         ========================================================== */
+      function computeScore(tasks) {
+        var earned = 0;
+        var possible = 0;
+        tasks.forEach(function (task) {
+          var weight = WEIGHT[task.importance] || 0;
+          possible += weight;
+          earned += weight * (CREDIT[task.status] || 0);
+        });
+        var percent = possible > 0 ? Math.round((earned / possible) * 100) : 0;
+        var band;
+        if (possible === 0) {
+          band = { key: "todo", label: "尚未新增事項", caption: "加入研究事項後即可計算準備程度" };
+        } else if (percent >= 80) {
+          band = { key: "ready", label: "準備完成", caption: "內容齊備，可以再確認一次數據與結論" };
+        } else if (percent >= 50) {
+          band = { key: "wait", label: "尚有內容需要確認", caption: "還有事項等待確認，優先處理高重要度項目" };
+        } else {
+          band = { key: "todo", label: "Meeting 準備不足", caption: "建議先完成高重要度事項再進入 Meeting" };
+        }
+        return {
+          percent: percent,
+          band: band,
+          earned: Math.round(earned * 10) / 10,
+          possible: possible,
+          counts: {
+            total: tasks.length,
+            done: tasks.filter(function (t) { return t.status === "已完成"; }).length,
+            wait: tasks.filter(function (t) { return t.status === "待確認"; }).length,
+            todo: tasks.filter(function (t) { return t.status === "未完成"; }).length
+          }
+        };
+      }
+
+      var BAND_BADGE = { ready: "badge--done", wait: "badge--wait", todo: "badge--todo" };
+      var BAND_PROGRESS = { ready: "progress--ready", wait: "progress--wait", todo: "progress--todo" };
+
+      function renderScore() {
+        var score = computeScore(state.tasks);
+        $("scorePercent").textContent = String(score.percent);
+        $("scoreCaption").textContent = score.band.caption;
+
+        var band = $("scoreBand");
+        band.className = "badge badge--dot " + BAND_BADGE[score.band.key];
+        band.textContent = score.band.label;
+
+        var progress = $("scoreProgress");
+        progress.className = "progress " + BAND_PROGRESS[score.band.key];
+        progress.setAttribute("aria-valuenow", String(score.percent));
+        $("scoreFill").style.width = score.percent + "%";
+
+        if (score.possible > 0) {
+          $("scoreFormula").textContent =
+            "實際取得 " + score.earned + " ÷ 最高可能 " + score.possible + " 分（高=3、中=2、低=1；已完成 100%、待確認 50%、未完成 0%）";
+        } else {
+          $("scoreFormula").textContent = "計算公式：實際取得分數 ÷ 所有事項最高可能分數 × 100%";
+        }
+
+        $("statTotal").textContent = String(score.counts.total);
+        $("statDone").textContent = String(score.counts.done);
+        $("statWait").textContent = String(score.counts.wait);
+        $("statTodo").textContent = String(score.counts.todo);
+      }
+
+      /* ==========================================================
+         Priority list
+         ========================================================== */
+      function getPriorityTasks() {
+        return state.tasks
+          .filter(function (task) {
+            return task.importance === "高" && (task.status === "待確認" || task.status === "未完成");
+          })
+          .sort(function (a, b) {
+            if (a.status === b.status) return a.name.localeCompare(b.name, "zh-Hant");
+            return a.status === "未完成" ? -1 : 1;
+          });
+      }
+
+      function renderPriority() {
+        var list = $("priorityList");
+        var tasks = getPriorityTasks();
+        $("priorityMeta").textContent = tasks.length + " 項";
+
+        if (!tasks.length) {
+          list.innerHTML =
+            '<li><div class="empty-state">' +
+            '<span class="empty-state__icon" aria-hidden="true">' + ICONS.flag + "</span>" +
+            '<p class="empty-state__title">目前沒有需要優先處理的事項</p>' +
+            '<p class="empty-state__body">當有「高重要度 + 待確認／未完成」的事項時，會自動顯示在這裡。</p>' +
+            "</div></li>";
+          return;
+        }
+
+        list.innerHTML = tasks.map(function (task) {
+          return (
+            '<li class="row row--alert">' +
+            '<div class="row__body">' +
+            '<p class="row__title">' + esc(task.name) + "</p>" +
+            '<div class="row__badges">' +
+            '<span class="badge badge--alert">高重要度</span>' +
+            '<span class="badge badge--dot badge--' + STATUS_CLASS[task.status] + '">' + esc(task.status) + "</span>" +
+            '<span class="badge badge--neutral">' + esc(task.category) + "</span>" +
+            "</div>" +
+            (task.note ? '<p class="row__note">' + esc(task.note) + "</p>" : "") +
+            "</div>" +
+            '<div class="row__actions">' +
+            '<button class="icon-btn" type="button" data-edit="' + esc(task.id) + '" aria-label="編輯 ' + esc(task.name) + '" title="編輯">' + ICONS.edit + "</button>" +
+            "</div>" +
+            "</li>"
+          );
+        }).join("");
+      }
+
+      /* ==========================================================
+         Tasks
+         ========================================================== */
+      function getFilteredTasks() {
+        return state.tasks.filter(function (task) {
+          var f = state.filters;
+          return (f.status === "全部" || task.status === f.status) &&
+            (f.importance === "全部" || task.importance === f.importance) &&
+            (f.category === "全部" || task.category === f.category);
+        });
+      }
+
+      function renderTasks() {
+        var list = $("taskList");
+        var tasks = getFilteredTasks();
+        $("tasksMeta").textContent = "共 " + state.tasks.length + " 筆";
+        $("filterCount").textContent = "顯示 " + tasks.length + " / " + state.tasks.length + " 筆";
+
+        if (!state.tasks.length) {
+          list.innerHTML =
+            '<li><div class="empty-state">' +
+            '<span class="empty-state__icon" aria-hidden="true">' + ICONS.empty + "</span>" +
+            '<p class="empty-state__title">還沒有任何研究事項</p>' +
+            '<p class="empty-state__body">在上方表單新增第一筆事項，Meeting Ready 分數與優先處理清單會立即更新。</p>' +
+            "</div></li>";
+          return;
+        }
+
+        if (!tasks.length) {
+          list.innerHTML =
+            '<li><div class="empty-state">' +
+            '<span class="empty-state__icon" aria-hidden="true">' + ICONS.empty + "</span>" +
+            '<p class="empty-state__title">沒有符合篩選條件的事項</p>' +
+            '<p class="empty-state__body">試著調整狀態、重要程度或類別條件，或按下「清除篩選」。</p>' +
+            "</div></li>";
+          return;
+        }
+
+        list.innerHTML = tasks.map(function (task) {
+          return (
+            '<li class="row row--' + STATUS_CLASS[task.status] + (task.importance === "高" && task.status !== "已完成" ? " row--alert" : "") + '">' +
+            '<div class="row__body">' +
+            '<p class="row__title">' + esc(task.name) + "</p>" +
+            '<div class="row__badges">' +
+            '<span class="badge badge--accent">' + esc(task.category) + "</span>" +
+            '<span class="badge badge--neutral">重要度：' + esc(task.importance) + "</span>" +
+            '<span class="badge badge--dot badge--' + STATUS_CLASS[task.status] + '">' + esc(task.status) + "</span>" +
+            "</div>" +
+            (task.note ? '<p class="row__note">' + esc(task.note) + "</p>" : "") +
+            "</div>" +
+            '<div class="row__actions">' +
+            '<button class="icon-btn" type="button" data-edit="' + esc(task.id) + '" aria-label="編輯 ' + esc(task.name) + '" title="編輯">' + ICONS.edit + "</button>" +
+            '<button class="icon-btn icon-btn--alert" type="button" data-delete="' + esc(task.id) + '" aria-label="刪除 ' + esc(task.name) + '" title="刪除">' + ICONS.trash + "</button>" +
+            "</div>" +
+            "</li>"
+          );
+        }).join("");
+      }
+
+      function renderAll() {
+        renderScore();
+        renderPriority();
+        renderTasks();
+      }
+
+      function addTask(data) {
+        state.tasks.unshift(normalizeTask(data));
+        scheduleSave();
+        renderAll();
+      }
+
+      function startEdit(id) {
+        var task = state.tasks.filter(function (t) { return t.id === id; })[0];
+        if (!task) return;
+        editingId = id;
+        $("taskName").value = task.name;
+        $("taskCategory").value = task.category;
+        $("taskImportance").value = task.importance;
+        $("taskStatus").value = task.status;
+        $("taskNote").value = task.note;
+        $("taskSubmitBtn").textContent = "更新研究事項";
+        $("taskCancelBtn").hidden = false;
+        $("tasksTitle").scrollIntoView({ behavior: "smooth", block: "start" });
+        $("taskName").focus();
+      }
+
+      function resetTaskForm() {
+        editingId = null;
+        $("taskForm").reset();
+        $("taskCategory").value = "方法";
+        $("taskImportance").value = "高";
+        $("taskStatus").value = "未完成";
+        $("taskSubmitBtn").textContent = "新增研究事項";
+        $("taskCancelBtn").hidden = true;
+        $("taskNameError").hidden = true;
+        $("taskName").removeAttribute("aria-invalid");
+      }
+
+      /* ==========================================================
+         Question card
+         ========================================================== */
+      function renderQuestion() {
+        var box = $("questionBox");
+        var text = $("questionText");
+        var hasQuestion = !!state.question.text;
+
+        if (hasQuestion) {
+          box.className = "quote";
+          text.textContent = state.question.text;
+        } else {
+          box.className = "quote quote--empty";
+          text.textContent = "尚未抽題，按下按鈕隨機抽出一題模擬教授可能的提問。";
+        }
+
+        $("questionMeta").hidden = !hasQuestion;
+        $("questionActions").hidden = !hasQuestion;
+        if (hasQuestion) {
+          $("questionHelper").textContent = state.question.prepared ? "已標記為準備好" : "準備好了嗎？可以加入待辦繼續追蹤";
+          $("questionReadyBtn").disabled = state.question.prepared;
+          $("questionReadyBtn").textContent = state.question.prepared ? "已準備好" : "我已準備好";
+        }
+      }
+
+      function drawQuestion() {
+        var pool = QUESTIONS.filter(function (q) { return q !== state.question.text; });
+        if (!pool.length) pool = QUESTIONS.slice();
+        state.question.text = pool[Math.floor(Math.random() * pool.length)];
+        state.question.prepared = false;
+        scheduleSave();
+        renderQuestion();
+      }
+
+      function addQuestionTodo() {
+        if (!state.question.text) return;
+        addTask({
+          name: "準備回答：" + state.question.text,
+          category: "待討論",
+          importance: "高",
+          status: "未完成",
+          note: "由模擬教授追問加入"
+        });
+        toast("已加入研究事項：" + state.question.text);
+      }
+
+      /* ==========================================================
+         Notes -> tasks
+         ========================================================== */
+      function adviceToTasks() {
+        var lines = state.notes.advice.split("\n").map(function (line) {
+          return line.replace(/^[\s\-•\d.、)]+/, "").trim();
+        }).filter(function (line) {
+          return line.length > 0;
+        });
+
+        if (!lines.length) {
+          toast("請先輸入教授建議", "alert");
+          return;
+        }
+
+        lines.reverse().forEach(function (line) {
+          state.tasks.unshift(normalizeTask({
+            name: line,
+            category: "待討論",
+            importance: "高",
+            status: "未完成",
+            note: "由 Meeting 教授建議轉入"
+          }));
+        });
+
+        state.notes.advice = "";
+        $("notesAdvice").value = "";
+        scheduleSave();
+        renderAll();
+        toast("已轉入 " + lines.length + " 筆研究事項");
+      }
+
+      /* ==========================================================
+         Export summary
+         ========================================================== */
+      function pad(value) {
+        return value < 10 ? "0" + value : String(value);
+      }
+
+      function formatDate(value) {
+        if (!value) return "（未填寫）";
+        var parts = value.split("-");
+        if (parts.length !== 3) return value;
+        return parts[0] + "/" + parts[1] + "/" + parts[2];
+      }
+
+      function taskLines(tasks) {
+        if (!tasks.length) return ["（無）"];
+        return tasks.map(function (task, index) {
+          var line = (index + 1) + ". [" + task.category + "／重要度：" + task.importance + "] " + task.name;
+          if (task.note) line += "\n   備註：" + task.note;
+          return line;
+        });
+      }
+
+      function groupByStatus(status) {
+        return state.tasks.filter(function (task) { return task.status === status; });
+      }
+
+      function buildSummary() {
+        var now = new Date();
+        var score = computeScore(state.tasks);
+        var lines = [];
+
+        lines.push("Research Meeting Dashboard｜Meeting 摘要");
+        lines.push("匯出時間：" + now.getFullYear() + "/" + pad(now.getMonth() + 1) + "/" + pad(now.getDate()) +
+          " " + pad(now.getHours()) + ":" + pad(now.getMinutes()));
+        lines.push("");
+        lines.push("【Meeting 基本資料】");
+        lines.push("Meeting 日期：" + formatDate(state.meta.date));
+        lines.push("研究主題：" + (state.meta.topic || "（未填寫）"));
+        lines.push("預計報告時間：" + (state.meta.duration || "（未填寫）"));
+        lines.push("上次教授交代事項：");
+        lines.push(state.meta.lastNote ? state.meta.lastNote : "（未填寫）");
+        lines.push("");
+        lines.push("【Meeting Ready 分數】" + score.percent + "%（" + score.band.label + "）");
+        lines.push("已完成 " + score.counts.done + " 筆／待確認 " + score.counts.wait + " 筆／未完成 " + score.counts.todo + " 筆，共 " + score.counts.total + " 筆");
+        lines.push("");
+        lines.push("【已完成事項】(" + score.counts.done + ")");
+        lines.push.apply(lines, taskLines(groupByStatus("已完成")));
+        lines.push("");
+        lines.push("【待確認事項】(" + score.counts.wait + ")");
+        lines.push.apply(lines, taskLines(groupByStatus("待確認")));
+        lines.push("");
+        lines.push("【未完成事項】(" + score.counts.todo + ")");
+        lines.push.apply(lines, taskLines(groupByStatus("未完成")));
+        lines.push("");
+        lines.push("【Meeting 前建議優先處理】");
+        var priority = getPriorityTasks();
+        lines.push.apply(lines, priority.length ? priority.map(function (task) {
+          return "- " + task.name + "（" + task.category + "／" + task.status + "）";
+        }) : ["（無）"]);
+        lines.push("");
+        lines.push("【Meeting 前想問教授】");
+        lines.push(state.notes.questions ? state.notes.questions : "（未填寫）");
+        lines.push("");
+        lines.push("【Meeting 後教授建議】");
+        lines.push(state.notes.advice ? state.notes.advice : "（未填寫）");
+        lines.push("");
+
+        return lines.join("\n");
+      }
+
+      function exportSummary() {
+        var content = "\uFEFF" + buildSummary();
+        var blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        link.href = url;
+        link.download = "meeting_summary.txt";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        toast("已匯出 meeting_summary.txt");
+      }
+
+      /* ==========================================================
+         New meeting
+         ========================================================== */
+      function startNewMeeting() {
+        var ok = window.confirm("確定要建立新的 Meeting 嗎？目前資料將會被清除。");
+        if (!ok) return;
+
+        localStorage.removeItem(STORAGE_KEY);
+        state = emptyState();
+        editingId = null;
+        saveTimer = null;
+        hydrateInputs();
+        resetTaskForm();
+        renderAll();
+        renderQuestion();
+        setSaveChip(false);
+        flushSave();
+        toast("已建立新的 Meeting，資料已清空");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      /* ==========================================================
+         Hydrate + bind
+         ========================================================== */
+      function hydrateInputs() {
+        $("metaDate").value = state.meta.date || "";
+        $("metaTopic").value = state.meta.topic || "";
+        $("metaDuration").value = state.meta.duration || "";
+        $("metaLastNote").value = state.meta.lastNote || "";
+        $("notesQuestions").value = state.notes.questions || "";
+        $("notesAdvice").value = state.notes.advice || "";
+      }
+
+      function bindMeta() {
+        var map = {
+          metaDate: "date",
+          metaTopic: "topic",
+          metaDuration: "duration",
+          metaLastNote: "lastNote"
+        };
+        Object.keys(map).forEach(function (id) {
+          var el = $(id);
+          el.addEventListener("input", function () {
+            state.meta[map[id]] = el.value;
+            scheduleSave();
+          });
+          el.addEventListener("blur", flushSave);
+        });
+
+        var notesMap = { notesQuestions: "questions", notesAdvice: "advice" };
+        Object.keys(notesMap).forEach(function (id) {
+          var el = $(id);
+          el.addEventListener("input", function () {
+            state.notes[notesMap[id]] = el.value;
+            scheduleSave();
+          });
+          el.addEventListener("blur", flushSave);
+        });
+      }
+
+      function bindTaskForm() {
+        $("taskForm").addEventListener("submit", function (event) {
+          event.preventDefault();
+          var name = $("taskName").value.trim();
+
+          if (!name) {
+            $("taskNameError").hidden = false;
+            $("taskName").setAttribute("aria-invalid", "true");
+            $("taskName").focus();
+            return;
+          }
+
+          $("taskNameError").hidden = true;
+          $("taskName").removeAttribute("aria-invalid");
+
+          var payload = {
+            name: name,
+            category: $("taskCategory").value,
+            importance: $("taskImportance").value,
+            status: $("taskStatus").value,
+            note: $("taskNote").value.trim()
+          };
+
+          if (editingId) {
+            var task = state.tasks.filter(function (t) { return t.id === editingId; })[0];
+            if (task) Object.assign(task, payload);
+            scheduleSave();
+            renderAll();
+            toast("已更新研究事項");
+          } else {
+            addTask(payload);
+            toast("已新增研究事項");
+          }
+          resetTaskForm();
+        });
+
+        $("taskCancelBtn").addEventListener("click", function () {
+          resetTaskForm();
+        });
+
+        $("taskList").addEventListener("click", function (event) {
+          var editBtn = event.target.closest("[data-edit]");
+          var deleteBtn = event.target.closest("[data-delete]");
+          if (editBtn) {
+            startEdit(editBtn.getAttribute("data-edit"));
+            return;
+          }
+          if (deleteBtn) {
+            var id = deleteBtn.getAttribute("data-delete");
+            var task = state.tasks.filter(function (t) { return t.id === id; })[0];
+            if (!task) return;
+            if (!window.confirm("確定要刪除「" + task.name + "」嗎？")) return;
+            state.tasks = state.tasks.filter(function (t) { return t.id !== id; });
+            if (editingId === id) resetTaskForm();
+            scheduleSave();
+            renderAll();
+            toast("已刪除研究事項");
+          }
+        });
+
+        $("priorityList").addEventListener("click", function (event) {
+          var editBtn = event.target.closest("[data-edit]");
+          if (editBtn) startEdit(editBtn.getAttribute("data-edit"));
+        });
+      }
+
+      function bindFilters() {
+        var map = {
+          filterStatus: "status",
+          filterImportance: "importance",
+          filterCategory: "category"
+        };
+        Object.keys(map).forEach(function (id) {
+          $(id).addEventListener("change", function () {
+            state.filters[map[id]] = $(id).value;
+            scheduleSave();
+            renderTasks();
+          });
+        });
+
+        $("clearFiltersBtn").addEventListener("click", function () {
+          state.filters = { status: "全部", importance: "全部", category: "全部" };
+          hydrateFilters();
+          scheduleSave();
+          renderTasks();
+        });
+      }
+
+      function hydrateFilters() {
+        fillSelect($("filterStatus"), STATUSES, state.filters.status);
+        fillSelect($("filterImportance"), IMPORTANCE_LEVELS, state.filters.importance);
+        fillSelect($("filterCategory"), CATEGORIES, state.filters.category);
+      }
+
+      function bindQuestion() {
+        $("drawQuestionBtn").addEventListener("click", drawQuestion);
+        $("questionReadyBtn").addEventListener("click", function () {
+          state.question.prepared = true;
+          scheduleSave();
+          renderQuestion();
+          toast("已標記為準備好：" + state.question.text);
+        });
+        $("questionTodoBtn").addEventListener("click", addQuestionTodo);
+      }
+
+      function init() {
+        fillSelect($("taskCategory"), CATEGORIES, "方法", []);
+        fillSelect($("taskImportance"), IMPORTANCE_LEVELS, "高", []);
+        fillSelect($("taskStatus"), STATUSES, "未完成", []);
+        if (!$("taskCategory").value) $("taskCategory").value = "方法";
+
+        hydrateFilters();
+        hydrateInputs();
+        resetTaskForm();
+        renderAll();
+        renderQuestion();
+
+        bindMeta();
+        bindTaskForm();
+        bindFilters();
+        bindQuestion();
+
+        $("exportBtn").addEventListener("click", exportSummary);
+        $("newMeetingBtn").addEventListener("click", startNewMeeting);
+        $("adviceToTasksBtn").addEventListener("click", adviceToTasks);
+
+        document.addEventListener("visibilitychange", function () {
+          if (document.visibilityState === "hidden") flushSave();
+        });
+        window.addEventListener("beforeunload", flushSave);
+
+        if (state.tasks.length) {
+          $("basicsMeta").textContent = "上次自動儲存：" +
+            new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+
+</html>
