@@ -1,7 +1,8 @@
 # vibe_coding_hw5_1012
 vibe coding做的研究 Meeting 準備儀表板
 
-最終 Vibe Coding Prompt
+## 最終 Vibe Coding Prompt
+
 最後討論完成之後，再把這份完整規格交給 AI：
 請依照以下規格製作完整的單頁 Web App。
 
